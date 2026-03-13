@@ -1,0 +1,24 @@
+{
+	"name": "remote-pc-controler",
+	"private": "true",
+	"version": "1.0.0",
+	"description": "monorepo of mobile and pc agent code.",
+	"main": "index.js",
+	"workspaces": [
+		"app/*",
+		"package/*"
+	],
+	"scripts": {
+		"mobile": "turbo run start --filter=mobile",
+		"build:mobile": "turbo run build --filter=mobile",
+		"build:agent": "cmake --build agent/build --config Release",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"type": "commonjs",
+	"devDependencies": {
+		"turbo": "^2.8.16"
+	}
+}
