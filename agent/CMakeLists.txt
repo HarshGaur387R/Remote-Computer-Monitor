@@ -9,7 +9,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Define source files
 set(SOURCES
-    src/main.cpp
+    src/main.cpp 
+    src/server.cpp
 )
 
 # Define include directories
