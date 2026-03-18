@@ -1,17 +1,27 @@
 #include "server.h"
 #include "../include/httplib.h"
+#include "commands.h"
 #include <iostream>
 
-using namespace std;
-
 void startServer(int port) {
-
+  using namespace std;
   using namespace httplib;
 
   Server svr;
 
-  svr.Get("/hi", [](const Request &req, Response &res) {
-    res.set_content("Hello World!", "text/plain");
+  svr.Get("/lock", [](const Request &req, Response &res) {
+    if (LockScreen() > 0) {
+      cout << "Screen Locked succesfully." << endl;
+      res.set_content("Screen Locked", "text/plain");
+    } else {
+      cerr << "Failed to lock the screen." << endl;
+      res.set_content("Failed to lock Screen", "text/plain");
+    }
+  });
+
+  svr.Get("/message", [](const Request &req, Response &res) {
+    DisplayMessage(L"Message from admin", L"You have only 20 minutes left.");
+    res.set_content("message diliverd", "text/plain");
   });
 
   int corrected_port = port > 0 ? port : 8080;
