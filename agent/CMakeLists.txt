@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(SOURCES
     src/main.cpp 
     src/server.cpp
+    src/commands.cpp
 )
 
 # Define include directories

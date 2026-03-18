@@ -1,0 +1,14 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default Config",
+      "description": "Build in agent/build directory",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    }
+  ]
+}
