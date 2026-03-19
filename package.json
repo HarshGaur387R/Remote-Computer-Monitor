@@ -11,6 +11,8 @@
 	"scripts": {
 		"mobile": "turbo run start --filter=mobile",
 		"build:mobile": "turbo run build --filter=mobile",
+		"cmake:agent":"cd agent/build && cmake .. .",
+		"dev:agent": "cmake --build agent/build",
 		"build:agent": "cmake --build agent/build --config Release",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},

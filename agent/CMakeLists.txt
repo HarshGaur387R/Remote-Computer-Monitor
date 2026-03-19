@@ -12,6 +12,7 @@ set(SOURCES
     src/main.cpp 
     src/server.cpp
     src/commands.cpp
+    src/commandPrompts.cpp
 )
 
 # Define include directories
@@ -22,6 +23,7 @@ add_executable(agent ${SOURCES})
 
 # Output directory for build
 set_target_properties(agent PROPERTIES
+    OUTPUT_NAME "rcma"
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 
