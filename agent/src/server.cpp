@@ -3,6 +3,20 @@
 #include "commands.h"
 #include <iostream>
 
+// Helper: convert UTF-8 std::string to UTF-16 std::wstring
+std::wstring utf8_to_wstring(const std::string &str) {
+  if (str.empty())
+    return std::wstring();
+
+  int size_needed =
+      MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), nullptr, 0);
+
+  std::wstring wstr(size_needed, 0);
+  MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), &wstr[0],
+                      size_needed);
+  return wstr;
+}
+
 void startServer(int port) {
   using namespace std;
   using namespace httplib;
@@ -11,7 +25,7 @@ void startServer(int port) {
 
   svr.Get("/lock", [](const Request &req, Response &res) {
     if (LockScreen() > 0) {
-      cout << "Screen Locked succesfully." << endl;
+      cout << "Screen Locked successfully." << endl;
       res.set_content("Screen Locked", "text/plain");
     } else {
       cerr << "Failed to lock the screen." << endl;
@@ -19,9 +33,32 @@ void startServer(int port) {
     }
   });
 
+  svr.Get("/notification", [](const Request &req, Response &res) {
+    string body = req.get_param_value("body");
+    string title = req.get_param_value("title");
+
+    // Convert safely from UTF-8 to UTF-16
+    wstring wbody = utf8_to_wstring(body);
+    wstring wtitle = utf8_to_wstring(title);
+
+    SendNotification(wtitle, wbody);
+    res.set_content("Message delivered", "text/plain");
+  });
+
   svr.Get("/message", [](const Request &req, Response &res) {
-    DisplayMessage(L"Message from admin", L"You have only 20 minutes left.");
-    res.set_content("message diliverd", "text/plain");
+    std::string body = req.get_param_value("body");
+    std::string title = req.get_param_value("title");
+
+    std::wstring wbody = utf8_to_wstring(body);
+    std::wstring wtitle = utf8_to_wstring(title);
+
+    // Launch DisplayMessage in its own thread
+    std::thread([wtitle, wbody]() {
+      DisplayMessage(wtitle, wbody); // blocking, but only in this thread
+    }).detach();
+
+    // Respond immediately
+    res.set_content("Message delivered", "text/plain");
   });
 
   int corrected_port = port > 0 ? port : 8080;
@@ -40,3 +77,6 @@ void startServer(int port) {
     }
   }
 }
+
+/* curl "http://localhost:4567/message?body=Hello world&title=hello" ` -Method
+ * GET ` -Headers @{ "Content-Type" = "application/x-www-form-urlencoded" } */
