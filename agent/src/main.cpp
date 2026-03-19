@@ -1,15 +1,26 @@
-#include "config.h"
-#include "server.h"
+#include "commandPrompts.h"
 #include <iostream>
+#include <windows.h>
 using namespace std;
 
-int main() {
-  const int server_port = AGENT_PORT;
-  const int beacon_port = BEACON_PORT;
+int main(int argc, char *argv[]) {
 
-  cout << "This is Agent server!" << endl;
+  cout << "This is Agent server! build 4" << endl;
+  HANDLE hMutex = CreateMutexA(NULL, TRUE, "Global\\RCMA_Server_Mutex");
 
-  startServer(server_port);
+  if (hMutex == NULL) {
+    cerr << "Failed to create mutex.\n";
+    return 1;
+  }
 
+  if (GetLastError() == ERROR_ALREADY_EXISTS) {
+    cout << "RCMA server is already running.\n";
+    CloseHandle(hMutex);
+    return 1;
+  }
+
+  handle_command_prompts(argc, argv);
+
+  CloseHandle(hMutex);
   return 0;
 };
