@@ -5,7 +5,7 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-  cout << "This is Agent server! build 4" << endl;
+  cout << "\033[1;34mThis is RCM Agent\033[0m\n"<< endl;
   HANDLE hMutex = CreateMutexA(NULL, TRUE, "Global\\RCMA_Server_Mutex");
 
   if (hMutex == NULL) {

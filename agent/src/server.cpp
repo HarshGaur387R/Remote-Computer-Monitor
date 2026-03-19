@@ -26,7 +26,6 @@ void startServer(int port) {
 
   int corrected_port = port > 0 ? port : 8080;
 
-  cout << "Spining up server .." << endl;
   cout << "Server will listen at " << corrected_port << endl;
   if (!svr.listen("0.0.0.0", corrected_port)) {
     cout << "PORT " << corrected_port << " is busy, trying different port...\n";
