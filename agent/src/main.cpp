@@ -9,6 +9,7 @@ int main(int argc, char *argv[]) {
   HANDLE hMutex = CreateMutexA(NULL, TRUE, "Global\\RCMA_Server_Mutex");
 
   if (hMutex == NULL) {
+    
     cerr << "Failed to create mutex.\n";
     return 1;
   }

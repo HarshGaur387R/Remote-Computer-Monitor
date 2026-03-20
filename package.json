@@ -14,6 +14,7 @@
 		"cmake:agent":"cd agent/build && cmake .. .",
 		"debug:agent": "cmake --build agent/build",
 		"build:agent": "cmake --build agent/build --config Release",
+		"cmake:debug:agent": "npm run cmake:agent && npm run debug:agent",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"keywords": [],
