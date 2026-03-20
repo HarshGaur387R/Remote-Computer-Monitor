@@ -44,7 +44,7 @@ public:
 };
 
 int DisplayMessage(const std::wstring &title, const std::wstring &message) {
-  return MessageBoxW(NULL, message.c_str(), title.c_str(), MB_OK);
+  return MessageBoxW(NULL, message.c_str(), title.c_str(), MB_ICONWARNING | MB_OK | MB_SYSTEMMODAL);
 }
 
 int SendNotification(const std::wstring &title, const std::wstring &message) {
