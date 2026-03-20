@@ -13,6 +13,8 @@ set(SOURCES
     src/server.cpp
     src/commands.cpp
     src/commandPrompts.cpp
+    src/wintoastlib.cpp
+    src/CreateShortcut.cpp
 )
 
 # Define include directories

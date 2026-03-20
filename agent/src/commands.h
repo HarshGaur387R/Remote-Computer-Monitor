@@ -3,6 +3,7 @@
 #include <string>
 
 int LockScreen();
-void DisplayMessage(const std::wstring &title, const std::wstring &message);
+int SendNotification(const std::wstring &title, const std::wstring &message);
+int DisplayMessage(const std::wstring &title, const std::wstring &message);
 
 #endif
