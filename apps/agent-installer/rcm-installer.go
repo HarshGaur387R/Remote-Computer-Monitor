@@ -80,8 +80,60 @@ func printHelp() {
 	fmt.Println()
 }
 
+// Returns true if the service is running, false otherwise
+func isServiceRunning(serviceName string) (bool, error) {
+	out, err := exec.Command("sc", "query", serviceName).Output()
+	if err != nil {
+		return false, err
+	}
+	result := string(out)
+	// Look for "RUNNING" in the output
+	return strings.Contains(result, "RUNNING"), nil
+}
+
+// Returns true if the service exists, false otherwise
+func serviceExists(serviceName string) (bool, error) {
+	out, err := exec.Command("sc", "query", serviceName).CombinedOutput()
+	if err != nil {
+		// If the error output contains "does not exist", we know it’s missing
+		if strings.Contains(string(out), "does not exist") {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+func startAgent() {
 	configDir := `C:\ProgramData\RCMAgent`
 	configFile := configDir + `\config.json`
+	serviceName := "RCMAgentService"
+
+	// Chekcking if service exist.
+	isServiceExists, err := serviceExists(serviceName)
+	if err != nil {
+		fmt.Println("Error on finding service:", err)
+		return
+	}
+	if !isServiceExists {
+		fmt.Println("Service not found, Try to install it again. run `rcmai --update`")
+		return
+	}
+
+	// Checking if service is running
+	running, err := isServiceRunning(serviceName)
+	if err != nil {
+		fmt.Println("Error checking service:", err)
+		return
+	}
+	if running {
+		fmt.Println("RCMAgentService is already running")
+		return
+	} else {
+		fmt.Println("RCMAgentService is not running")
+	}
+
+	return
 
 	addr, lanError := getLANIP()
 	if lanError != nil {
@@ -115,5 +167,25 @@ func printHelp() {
 		log.Fatalf("Failed to write config: %v", err)
 	}
 
-	fmt.Println("Hello from installer")
+}
+
+func main() {
+
+	if len(os.Args) < 2 {
+		fmt.Println("No command is given. Run program with --help\nExample: rcmai --help")
+		return
+	}
+
+	switch os.Args[1] {
+	case "--help":
+		printHelp()
+	case "start": // start service + show QR
+		startAgent()
+	case "stop": // stop service
+		fmt.Println("Stop is pressed")
+	case "status": // query service
+		fmt.Println("Status is pressed")
+	case "restart": // stop + start
+		fmt.Println("Restart is pressed")
+	}
 }
