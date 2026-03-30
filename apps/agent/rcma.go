@@ -3,9 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math"
-	"net"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -13,15 +14,35 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 )
 
-func getLANIP() (string, error) {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err != nil {
-		return "", err
-	}
-	defer conn.Close()
+type Config struct {
+	LANIP     string `json:"lan_ip"`
+	Port      int    `json:"port"`
+	AuthToken string `json:"auth_token"`
+}
 
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
-	return localAddr.IP.String(), nil
+func loadConfig(path string) (*Config, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var cfg Config
+	if err := json.NewDecoder(f).Decode(&cfg); err != nil {
+		return nil, err
+	}
+	return &cfg, nil
+}
+
+func authMiddleware(token string, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query().Get("auth")
+		if q != token {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next(w, r)
+	}
 }
 
 func systemInfoHandler(w http.ResponseWriter, _ *http.Request) {
@@ -47,15 +68,22 @@ func systemInfoHandler(w http.ResponseWriter, _ *http.Request) {
 func main() {
 	fmt.Println("Hello from RCMA")
 
-	ip, _ := getLANIP()
-	addr := fmt.Sprintf("%s:", ip)
-
-	http.HandleFunc("/system-info", systemInfoHandler)
-
-	ln, err := net.Listen("tcp", addr) // OS picks free port
+	// 1. Load config.json
+	cfg, err := loadConfig(`C:\ProgramData\RCMAgent\config.json`)
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to load config: %v", err)
 	}
-	fmt.Println("Server running on", ln.Addr().String())
-	http.Serve(ln, nil)
+
+	// 2. Setup routes with authentication
+	http.HandleFunc("/system-info", authMiddleware(cfg.AuthToken, systemInfoHandler))
+
+	// 3. Bind to LAN IP + Port from config
+	addr := fmt.Sprintf("%s:%d", cfg.LANIP, cfg.Port)
+	fmt.Println("Agent running on http://" + addr)
+
+	// 4. Start server
+	if err := http.ListenAndServe(addr, nil); err != nil {
+		log.Fatalf("Server failed: %v", err)
+	}
+
 }
