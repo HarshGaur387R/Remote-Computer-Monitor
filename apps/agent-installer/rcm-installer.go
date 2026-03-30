@@ -8,6 +8,8 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/exec"
+	"strings"
 )
 
 type Config struct {
@@ -54,7 +56,29 @@ func pickPort() (int, error) {
 	return port, nil
 }
 
-func main() {
+func printHelp() {
+	fmt.Println()
+	fmt.Println("RCMAgent Installer - Command Reference")
+	fmt.Println("======================================")
+	fmt.Println()
+	fmt.Println("Usage:")
+	fmt.Println("  rcmaI <command>")
+	fmt.Println()
+	fmt.Println("Available Commands:")
+	fmt.Println("  start    Launches the agent service. If already running, no action is taken. If not running,")
+	fmt.Println("           the installer checks whether the agent is installed. If missing, the latest release")
+	fmt.Println("           is downloaded and installed before starting the service.")
+	fmt.Println()
+	fmt.Println("  stop     Stops the agent service if it is currently running.")
+	fmt.Println()
+	fmt.Println("  restart  Restarts the agent service by stopping it first and then starting it again.")
+	fmt.Println()
+	fmt.Println("  status   Reports whether the agent service is running. Also indicates if the installed")
+	fmt.Println("           agent version is outdated compared to the latest release.")
+	fmt.Println()
+	fmt.Println("For more information, visit: https://github.com/harshgaur/rcm_monorepo")
+	fmt.Println()
+}
 
 	configDir := `C:\ProgramData\RCMAgent`
 	configFile := configDir + `\config.json`
