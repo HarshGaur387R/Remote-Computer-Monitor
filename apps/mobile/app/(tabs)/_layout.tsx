@@ -8,8 +8,8 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarInactiveTintColor: "#9B3922",
-        tabBarActiveTintColor: "#F2613F",
+        tabBarInactiveTintColor: "#2c5b87",
+        tabBarActiveTintColor: "#4988C4",
         headerShown: false,
         tabBarButton: HapticTab,
       }}>
@@ -21,7 +21,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="computers"
         options={{
           title: 'Computers',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="pc" color={color} />,
