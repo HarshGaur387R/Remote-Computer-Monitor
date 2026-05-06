@@ -7,6 +7,7 @@ import (
 	"guiinstaller/internal/utils"
 	"image/color"
 	"os"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -15,6 +16,135 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 )
+
+func startAgent(statusState binding.Bool, parent fyne.Window) {
+	{
+
+		errOnSetup := utils.SetupForAgent()
+		agentBinaryInfo, err := os.Stat(constants.RCMA_BINARY_PATH)
+
+		if err != nil {
+			dialog.ShowError(fmt.Errorf("ES1 Error on starting agent: %v", err), parent)
+			return
+		}
+
+		if agentBinaryInfo == nil {
+			dialog.ShowError(fmt.Errorf("ES2 Error on starting agent: %v", err), parent)
+			return
+		}
+
+		if errOnSetup != nil {
+			dialog.ShowError(errOnSetup, parent)
+			return
+		}
+
+		exist, err := utils.IsServiceExist(constants.AGENT_NAME)
+		if err != nil {
+			dialog.ShowError(err, parent)
+			return
+		}
+
+		if !exist {
+			err := utils.RegisterService(constants.RCMA_BINARY_PATH, constants.AGENT_NAME, constants.AGENT_DISPLAY_NAME)
+			if err != nil {
+				dialog.ShowError(err, parent)
+				return
+			}
+		}
+
+		running, err := agentapis.IsRunning(constants.AGENT_NAME)
+
+		if err != nil {
+			dialog.ShowError(err, parent)
+			return
+		}
+
+		if running {
+			dialog.ShowInformation("Agent is already running", "Click stop if you want to stop agent from running", parent)
+			return
+		} else {
+			err := agentapis.Start_agent(constants.AGENT_NAME)
+
+			if err != nil {
+				dialog.ShowError(err, parent)
+				return
+			}
+		}
+
+		statusState.Set(true)
+	}
+}
+
+func stopAgent(statusState binding.Bool, parent fyne.Window) {
+	// Pause button action
+
+	exist, err := utils.IsServiceExist(constants.AGENT_NAME)
+	if err != nil {
+		dialog.ShowError(err, parent)
+		return
+	}
+
+	if exist {
+		running, err := agentapis.IsRunning(constants.AGENT_NAME)
+
+		if err != nil {
+			dialog.ShowError(err, parent)
+			return
+		}
+
+		if running {
+			err := agentapis.Stop_agent(constants.AGENT_NAME)
+			if err != nil {
+				dialog.ShowError(err, parent)
+				return
+			}
+			statusState.Set(false)
+			return
+		} else {
+			dialog.ShowInformation("Agent is not running", "Agent is already in stop state, to run it press start.", parent)
+			return
+		}
+	} else {
+		dialog.ShowError(fmt.Errorf("Agent does not exist"), parent)
+		statusState.Set(false)
+		return
+	}
+}
+
+func restartAgent(statusState binding.Bool, parent fyne.Window) {
+	// Restart button action
+	exist, err := utils.IsServiceExist(constants.AGENT_NAME)
+	if err != nil {
+		dialog.ShowError(err, parent)
+		return
+	}
+
+	if exist {
+		isRunning, err := agentapis.IsRunning(constants.AGENT_NAME)
+
+		if err != nil {
+			dialog.ShowError(err, parent)
+			return
+		}
+
+		if isRunning {
+			stopAgent(statusState, parent)
+
+			// Small delay to ensure service is fully stopped
+			time.Sleep(500 * time.Millisecond)
+
+			startAgent(statusState, parent)
+			statusState.Set(true)
+			return
+
+		} else {
+			startAgent(statusState, parent)
+			statusState.Set(true)
+			return
+		}
+
+	}
+}
 
 func AgentTab(parent fyne.Window) fyne.CanvasObject {
 
@@ -40,73 +170,31 @@ func AgentTab(parent fyne.Window) fyne.CanvasObject {
 
 	UpdateUI := func() {
 
+		service_exist, err := utils.IsServiceExist(constants.AGENT_NAME)
+		if err != nil {
+			dialog.ShowError(fmt.Errorf("Error on checking if agent exist: %v", err), parent)
+			statusState.Set(false)
+		}
+
+		if service_exist {
+			is_running, err := agentapis.IsRunning(constants.AGENT_NAME)
+			if err != nil {
+				dialog.ShowError(fmt.Errorf("Error on checking if agent is running: %v", err), parent)
+				statusState.Set(false)
+			}
+			statusState.Set(is_running)
+		} else {
+			statusState.Set(false)
+		}
+
 		// ==================== STATES =========================
 		statusValue, _ := statusState.Get()
 		contentBox.Objects = nil
 
 		// ==================== CONTROL BAR ====================
-		playBtn := widget.NewButton("▶ Start", func() {
-
-			errOnSetup := utils.SetupForAgent()
-			agentBinaryInfo, err := os.Stat(constants.RCMA_BINARY_PATH)
-
-			if err != nil {
-				dialog.ShowError(fmt.Errorf("ES1 Error on starting agent: %v", err), parent)
-				return
-			}
-
-			if agentBinaryInfo == nil {
-				dialog.ShowError(fmt.Errorf("ES2 Error on starting agent: %v", err), parent)
-				return
-			}
-
-			if errOnSetup != nil {
-				dialog.ShowError(errOnSetup, parent)
-				return
-			}
-
-			exist, err := utils.IsServiceExist(constants.AGENT_NAME)
-			if err != nil {
-				dialog.ShowError(err, parent)
-				return
-			}
-
-			if !exist {
-				err := utils.RegisterService(constants.RCMA_BINARY_PATH, constants.AGENT_NAME, constants.AGENT_DISPLAY_NAME)
-				if err != nil {
-					dialog.ShowError(err, parent)
-					return
-				}
-			}
-
-			running, err := agentapis.IsRunning(constants.AGENT_NAME)
-
-			if err != nil {
-				dialog.ShowError(err, parent)
-				return
-			}
-
-			if running {
-				dialog.ShowInformation("Agent is already running", "Click stop if you want to stop agent from running", parent)
-				return
-			} else {
-				err := agentapis.Start_agent(constants.AGENT_NAME)
-
-				if err != nil {
-					dialog.ShowError(err, parent)
-					return
-				}
-			}
-
-			statusState.Set(true)
-		})
-		pauseBtn := widget.NewButton("⏸ Stop", func() {
-			// Pause button action
-			statusState.Set(false)
-		})
-		restartBtn := widget.NewButton("🔄 Restart", func() {
-			// Restart button action
-		})
+		playBtn := widget.NewButton("▶ Start", func() { startAgent(statusState, parent) })
+		pauseBtn := widget.NewButton("⏸ Stop", func() { stopAgent(statusState, parent) })
+		restartBtn := widget.NewButton("🔄 Restart", func() { restartAgent(statusState, parent) })
 
 		// Determine status text and color
 		statusText := "UnActive"
