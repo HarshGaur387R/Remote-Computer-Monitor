@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"syscall"
-	"time"
 
 	"golang.org/x/sys/windows/svc"
 	"golang.org/x/sys/windows/svc/mgr"
@@ -60,20 +59,6 @@ func Stop_agent(agentName string) error {
 	return nil
 }
 
-func Restart_agent(agentName string) error {
-	if err := Stop_agent(agentName); err != nil {
-		return fmt.Errorf("ERROR E106 - Error on stopping agent during restart: %v", err)
-	}
-
-	// Add a small delay to ensure service is fully stopped
-	time.Sleep(500 * time.Millisecond)
-
-	if err := Start_agent(agentName); err != nil {
-		return fmt.Errorf("ERROR E107 - Error on starting agent during restart: %v", err)
-	}
-
-	return nil
-}
 
 func IsRunning(agentName string) (bool, error) {
 	m, err := mgr.Connect()
