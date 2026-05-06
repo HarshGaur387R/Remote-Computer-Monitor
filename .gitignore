@@ -2,7 +2,9 @@ package-lock.json
 
 # dependencies
 node_modules/
+*.dio
 .vs
 build/
 .vscode/
 out/
+*.syso

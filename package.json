@@ -5,7 +5,7 @@
 	"description": "monorepo of mobile and pc agent code.",
 	"main": "index.js",
 	"workspaces": [
-		"app/*",
+		"apps/*",
 		"package/*"
 	],
 	"scripts": {

@@ -18,7 +18,10 @@ const MAPPING = {
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
-  'pc' : 'monitor'
+  'pc' : 'monitor',
+  'network.slash': 'signal-wifi-off',
+  'qrcode': 'qr-code-scanner',
+  'stop': 'stop-screen-share',
 } as IconMapping;
 
 /**
