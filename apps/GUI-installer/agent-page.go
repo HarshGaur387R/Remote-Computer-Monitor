@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	agentapis "guiinstaller/internal/agent-apis"
+	"guiinstaller/internal/components"
 	"guiinstaller/internal/constants"
 	"guiinstaller/internal/utils"
 	"image/color"
@@ -147,8 +148,10 @@ func restartAgent(statusState binding.Bool, parent fyne.Window) {
 }
 
 func AgentTab(parent fyne.Window) fyne.CanvasObject {
-
 	// ==================== STATES ====================
+	logState := binding.NewStringList()
+	logState.Append("Agent logs will appear...\n")
+	logState.Append("Agent initializing...\n")
 
 	statusState := binding.NewBool()
 	statusState.Set(false)
@@ -243,42 +246,24 @@ func AgentTab(parent fyne.Window) fyne.CanvasObject {
 		contentBox.Add(controlBarWithBorder)
 		contentBox.Refresh()
 	}
+
 	// ==================== LOGS DISPLAY ====================
 	logTitle := widget.NewLabel("Agent Logs")
 	logTitle.TextStyle.Bold = true
 
-	// Create green text for logs with proper line breaks
-	greenColor := color.RGBA{
-		R: 0,
-		G: 255,
-		B: 0,
-		A: 255, // Green text
+	logs, _ := logState.Get()
+
+	logsReadOnlyEntry := components.NewReadOnlyMultiLineEntry()
+	logsReadOnlyEntry.SetMinRowsVisible(20)
+
+	for i := 0; i < len(logs); i++ {
+		logsReadOnlyEntry.Append(logs[i])
 	}
-
-	logsInner := container.NewVBox(
-		canvas.NewText("Logs will appear here...", greenColor),
-		canvas.NewText("", greenColor),
-		canvas.NewText("- Agent initialized", greenColor),
-		canvas.NewText("- Ready for connections", greenColor),
-	)
-
-	// Black background rectangle
-	blackBg := canvas.NewRectangle(color.RGBA{
-		R: 0,
-		G: 0,
-		B: 0,
-		A: 255, // Black background
-	})
-
-	// Scrollable container for logs
-	logScroll := container.NewScroll(logsInner)
-	logScroll.SetMinSize(fyne.NewSize(600, 400))
 
 	// Combine background and logs
 	logsContent := container.NewStack(
-		blackBg,
 		container.NewVBox(
-			logScroll,
+			logsReadOnlyEntry,
 		),
 	)
 
