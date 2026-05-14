@@ -1,14 +1,18 @@
 package main
 
 import (
+	// "bufio"
+	"bufio"
+	"encoding/json"
 	"fmt"
 	agentapis "guiinstaller/internal/agent-apis"
 	"guiinstaller/internal/components"
 	"guiinstaller/internal/constants"
 	"guiinstaller/internal/utils"
 	"image/color"
+	"io"
 	"os"
-	"time"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -16,7 +20,114 @@ import (
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
+	"github.com/fsnotify/fsnotify"
 )
+
+const logFilePath = constants.LOG_FILE_PATH
+
+// LogEntry mirrors the JSON structure written by the agent logger.
+type LogEntry struct {
+	Timestamp string `json:"timestamp"`
+	Level     string `json:"level"`
+	Message   string `json:"message"`
+}
+
+// watchLogsAndDisplay tails logFilePath, parses each new JSON line, and
+// appends a formatted string to logState. It blocks until cancel is called.
+func watchLogsAndDisplay(entry *components.ReadOnlyEntry, cancel <-chan struct{}) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		fyne.Do(func() { entry.Append(fmt.Sprintf("[watcher error] %v\n", err)) })
+		return
+	}
+	defer watcher.Close()
+
+	f, err := os.Open(logFilePath)
+	if err != nil {
+		fyne.Do(func() { entry.Append(fmt.Sprintf("[log open error] %v\n", err)) })
+		return
+	}
+	defer f.Close()
+
+	f.Seek(0, io.SeekStart)
+	reader := bufio.NewReader(f)
+
+	if err := watcher.Add(logFilePath); err != nil {
+		fyne.Do(func() { entry.Append(fmt.Sprintf("[watcher add error] %v\n", err)) })
+		return
+	}
+
+	appendLine := func(line string) {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			return
+		}
+
+		var entry_data struct {
+			Timestamp string `json:"timestamp"`
+			Level     string `json:"level"`
+			Message   string `json:"message"`
+		}
+
+		var formatted string
+		if err := json.Unmarshal([]byte(line), &entry_data); err != nil {
+			// Show the parse error alongside the raw line so you can diagnose it
+			formatted = fmt.Sprintf("[parse error: %v] raw: %s\n", err, line)
+		} else {
+			formatted = fmt.Sprintf("[%s] %s: %s\n", entry_data.Timestamp, entry_data.Level, entry_data.Message)
+		}
+
+		fyne.Do(func() { entry.Append(formatted) })
+	}
+
+	readNewLines := func() {
+		for {
+			line, err := reader.ReadString('\n')
+			if len(strings.TrimSpace(line)) > 0 {
+				appendLine(line)
+			}
+			if err != nil {
+				if err != io.EOF {
+					fyne.Do(func() { entry.Append(fmt.Sprintf("[read error] %v\n", err)) })
+				}
+				break
+			}
+		}
+	}
+
+	readNewLines()
+
+	for {
+		select {
+		case <-cancel:
+			return
+
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return
+			}
+			if event.Has(fsnotify.Write) {
+				readNewLines()
+			}
+			if event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename) {
+				f.Close()
+				f, err = os.Open(logFilePath)
+				if err != nil {
+					fyne.Do(func() { entry.Append(fmt.Sprintf("[reopen error] %v\n", err)) })
+					return
+				}
+				reader.Reset(f)
+				watcher.Add(logFilePath)
+			}
+
+		case watchErr, ok := <-watcher.Errors:
+			if !ok {
+				return
+			}
+			fyne.Do(func() { entry.Append(fmt.Sprintf("[watcher error] %v\n", watchErr)) })
+		}
+	}
+}
 
 func startAgent(statusState binding.Bool, parent fyne.Window) {
 	{
@@ -112,46 +223,15 @@ func stopAgent(statusState binding.Bool, parent fyne.Window) {
 	}
 }
 
-func restartAgent(statusState binding.Bool, parent fyne.Window) {
-	// Restart button action
-	exist, err := utils.IsServiceExist(constants.AGENT_NAME)
-	if err != nil {
-		dialog.ShowError(err, parent)
-		return
-	}
-
-	if exist {
-		isRunning, err := agentapis.IsRunning(constants.AGENT_NAME)
-
-		if err != nil {
-			dialog.ShowError(err, parent)
-			return
-		}
-
-		if isRunning {
-			stopAgent(statusState, parent)
-
-			// Small delay to ensure service is fully stopped
-			time.Sleep(500 * time.Millisecond)
-
-			startAgent(statusState, parent)
-			statusState.Set(true)
-			return
-
-		} else {
-			startAgent(statusState, parent)
-			statusState.Set(true)
-			return
-		}
-
-	}
-}
-
 func AgentTab(parent fyne.Window) fyne.CanvasObject {
 	// ==================== STATES ====================
 	logState := binding.NewStringList()
-	logState.Append("Agent logs will appear...\n")
-	logState.Append("Agent initializing...\n")
+
+	logsReadOnlyEntry := components.NewReadOnlyMultiLineEntry()
+	logsReadOnlyEntry.SetMinRowsVisible(20)
+
+	cancelWatch := make(chan struct{})
+	go watchLogsAndDisplay(logsReadOnlyEntry, cancelWatch)
 
 	statusState := binding.NewBool()
 	statusState.Set(false)
@@ -197,7 +277,6 @@ func AgentTab(parent fyne.Window) fyne.CanvasObject {
 		// ==================== CONTROL BAR ====================
 		playBtn := widget.NewButton("▶ Start", func() { startAgent(statusState, parent) })
 		pauseBtn := widget.NewButton("⏸ Stop", func() { stopAgent(statusState, parent) })
-		restartBtn := widget.NewButton("🔄 Restart", func() { restartAgent(statusState, parent) })
 
 		// Determine status text and color
 		statusText := "UnActive"
@@ -229,7 +308,6 @@ func AgentTab(parent fyne.Window) fyne.CanvasObject {
 		controlButtonsContainer := container.NewHBox(
 			playBtn,
 			pauseBtn,
-			restartBtn,
 		)
 
 		// Combine control bar
@@ -253,10 +331,7 @@ func AgentTab(parent fyne.Window) fyne.CanvasObject {
 
 	logs, _ := logState.Get()
 
-	logsReadOnlyEntry := components.NewReadOnlyMultiLineEntry()
-	logsReadOnlyEntry.SetMinRowsVisible(20)
-
-	for i := 0; i < len(logs); i++ {
+	for i := range logs {
 		logsReadOnlyEntry.Append(logs[i])
 	}
 
@@ -284,6 +359,10 @@ func AgentTab(parent fyne.Window) fyne.CanvasObject {
 		widget.NewSeparator(),
 		logsContainer,
 	)
+
+	parent.SetOnClosed(func() {
+		close(cancelWatch)
+	})
 
 	return screen
 }
