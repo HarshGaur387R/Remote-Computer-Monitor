@@ -102,7 +102,7 @@ func DownloadAgent(url, dest string, progressCallback func(float64)) error {
 
 func SetupForAgent() error {
 
-	// 1) Create dir C:\ProgramData\RCMA ,config.json and agent_logs.json file at there
+	// 1) Create dir C:\ProgramData\RCMA ,config.json and agent_logs.ndjson file at there
 	if err := os.MkdirAll(constants.CONFIG_DIR, 0755); err != nil {
 		return fmt.Errorf("ERROR E26 - Failed to create config directory: %v", err)
 	}
