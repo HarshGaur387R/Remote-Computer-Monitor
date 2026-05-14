@@ -7,12 +7,16 @@
 ## [X] register agent and run it from installer
 ## [X] INSTALLER: Check if agent is running or not when Agent tab open up.
 ## [X] INSTALLER: Implement stop and restart
-## [] AGENT: Write agent logs in agent_logs.json file.
-## [] INSTALLER: Subscribe to agent_logs.json file using fnotify and display logs on screen in agent tab.
+## [X] AGENT: Fix logger to write log in ndjson file
+## [X] AGENT: Write agent logs in agent_logs.ndjson file.
+## [X] INSTALLER: Subscribe to agent_logs.ndjson file using fnotify and display logs on screen in agent tab.
+## [X] INSTALLER: Make an installer to install and run agent.
+## [] INSTALLER: Do not read agent_logs.ndjson file agent does not exist
+## [] INSTALLER: Disable all the buttons when process of clicked button is in loading state
+## [] INSTALLER: Provide remove service button which will delete service from services. 
 ## [] use named pipe to communicate with agent.  
 ## [] Use UDP for broadcasting
 ## [] Use TCP for TCP and route listing.
 ## [] Add route lock-screen, Alert-window and freeze-control
 ## [] Add QR code based authentication.
 ## [] Wrap server into bg service for both linux and windows
-## [] Make an installer to run install and run agent.

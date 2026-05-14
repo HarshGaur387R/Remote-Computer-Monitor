@@ -12,7 +12,7 @@ Write-Host "Building agent for 64-bit Windows (amd64)..." -ForegroundColor Cyan
 Write-Host "Output directory: $scriptDir" -ForegroundColor Cyan
 
 # Build the binary
-go build -o "$scriptDir\rcma.exe" "$scriptDir\rcma.go"
+go build -o "$scriptDir\rcma.exe" "$scriptDir\main.go"
 
 # Check if build was successful
 if ($LASTEXITCODE -eq 0) {
