@@ -52,16 +52,18 @@ func New(logDir string) (*Logger, error) {
 }
 
 func (l *Logger) write(level, msg string) {
-	entry := LogEntry{
-		Timestamp: time.Now().Format(time.RFC3339),
-		Level:     level,
-		Message:   msg,
-	}
-	line, _ := json.Marshal(entry)
+    entry := LogEntry{
+        Timestamp: time.Now().Format(time.RFC3339),
+        Level:     level,
+        Message:   msg,
+    }
+    line, _ := json.Marshal(entry)
+    line = append(line, '\n')
 
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.file.Write(append(line, '\n')) // one JSON object per line (NDJSON)
+    l.mu.Lock()
+    defer l.mu.Unlock()
+    l.file.Write(line)
+    l.file.Sync() // ✅ Flush OS buffer to disk — fsnotify fires after this
 }
 
 func (l *Logger) Info(msg string) { l.write("INFO", msg) }
