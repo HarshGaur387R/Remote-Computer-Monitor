@@ -10,7 +10,7 @@ const AGENT_NAME = "rcma"
 const AGENT_BINARY_NAME = "rcma.exe"
 const AGENT_DISPLAY_NAME = "RCM AGENT"
 
-const URL = "https://github.com/HarshGaur387R/Remote-Computer-Monitor/releases/download/v1.0.0/v1.0.0_rcma_testing.exe"
+const URL = "https://github.com/HarshGaur387R/Remote-Computer-Monitor/releases/download/v1.0.3-beta/v1.0.3_rcma_testing.exe"
 
 var RCMA_BINARY_DIR_PATH = filepath.Join(os.Getenv("LOCALAPPDATA"), "RCMA")
 var RCMA_BINARY_PATH = filepath.Join(RCMA_BINARY_DIR_PATH, AGENT_BINARY_NAME)
