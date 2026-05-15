@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	rcmaDirPath = `C:\ProgramData\RCMA`
-	configPath  = rcmaDirPath + `\config.json`
+	rcmaDirPath   = `C:\ProgramData\RCMA`
+	configPath    = rcmaDirPath + `\config.json`
+	agentLogsPath = rcmaDirPath + `\agent_logs.ndjson`
 )
 
 // Program implements service.Interface for kardianos/service.

@@ -1,86 +1,80 @@
 package agentapis
 
 import (
-	"errors"
-	"fmt"
-	"syscall"
+	"guiinstaller/internal/constants"
+	"guiinstaller/internal/utils"
 
-	"golang.org/x/sys/windows/svc"
-	"golang.org/x/sys/windows/svc/mgr"
+	"github.com/kardianos/service"
 )
 
-func Start_agent(agentName string) error {
-	m, err := mgr.Connect()
-	if err != nil {
-		return fmt.Errorf("ERROR - failed to connect to service manager: %v", err)
+func serviceHandle(agentBinaryPath string) (service.Service, error) {
+	// The GUI creates the same service.Config the agent uses.
+	// kardianos/service uses this only to talk to SCM — it does NOT run the binary.
+	cfg := &service.Config{
+		Name:        constants.AGENT_NAME,
+		DisplayName: "RCMA Remote Monitoring Agent",
+		Description: "Exposes system metrics over HTTP for RCMA.",
+		Executable:  agentBinaryPath,
 	}
-	defer m.Disconnect()
-
-	s, err := m.OpenService(agentName)
-	if err != nil {
-		if errors.Is(err, syscall.Errno(1060)) {
-			return fmt.Errorf("ERROR E100 - Service does not exist")
-		} else {
-			return fmt.Errorf("ERROR E101 - Error on opening service: %v\n", err)
-		}
-	}
-	defer s.Close()
-
-	startErr := s.Start()
-	if startErr != nil {
-		return fmt.Errorf("ERROR E102 - Error on starting agent: %v\n", startErr)
-	}
-
-	return nil
+	// nil program — GUI never calls Start/Stop on the Program interface,
+	// only on the SCM handle
+	return service.New(nil, cfg)
 }
 
-func Stop_agent(agentName string) error {
-	m, err := mgr.Connect()
+func IsServiceExist(name string) (bool, error) {
+	svc, err := serviceHandle(constants.RCMA_BINARY_PATH)
 	if err != nil {
-		return fmt.Errorf("ERROR - failed to connect to service manager: %v", err)
+		return false, err
 	}
-	defer m.Disconnect()
-
-	s, err := m.OpenService(agentName)
-	if err != nil {
-		if errors.Is(err, syscall.Errno(1060)) {
-			return fmt.Errorf("ERROR E103 - Service does not exist")
-		} else {
-			return fmt.Errorf("ERROR E104 - Error on opening service: %v", err)
-		}
+	_, err = svc.Status()
+	if err == service.ErrNotInstalled {
+		return false, nil
 	}
-	defer s.Close()
-
-	_, err = s.Control(svc.Stop)
-	if err != nil {
-		return fmt.Errorf("ERROR E105 - Error on stopping agent: %v", err)
-	}
-
-	return nil
+	return err == nil, err
 }
 
-
-func IsRunning(agentName string) (bool, error) {
-	m, err := mgr.Connect()
-	if err != nil {
-		return false, fmt.Errorf("ERROR - failed to connect to service manager: %v", err)
+func RegisterService(binaryPath, _, _ string) error {
+	if err := utils.SetupForAgent(); err != nil {
+		return err
 	}
-	defer m.Disconnect()
-
-	s, err := m.OpenService(agentName)
+	svc, err := serviceHandle(binaryPath)
 	if err != nil {
-		if errors.Is(err, syscall.Errno(1060)) {
-			return false, fmt.Errorf("ERROR E108 - Service does not exist")
-		} else {
-			return false, fmt.Errorf("ERROR E109 - Error on opening service: %v", err)
-		}
+		return err
 	}
-	defer s.Close()
+	return svc.Install()
+}
 
-	status, err := s.Query()
+func UnregisterService(binaryPath string) error {
+	svc, err := serviceHandle(binaryPath)
 	if err != nil {
-		return false, fmt.Errorf("ERROR E110 - Error querying service status: %v", err)
+		return err
 	}
+	return svc.Uninstall()
+}
 
-	return status.State == svc.Running, nil
+// internal/agent-apis/apis.go
+
+func IsRunning(name string) (bool, error) {
+	svc, err := serviceHandle(constants.RCMA_BINARY_PATH)
+	if err != nil {
+		return false, err
+	}
+	status, err := svc.Status()
+	return status == service.StatusRunning, err
+}
+
+func Start_agent(name string) error {
+	svc, err := serviceHandle(constants.RCMA_BINARY_PATH)
+	if err != nil {
+		return err
+	}
+	return service.Control(svc, "start")
+}
+
+func Stop_agent(name string) error {
+	svc, err := serviceHandle(constants.RCMA_BINARY_PATH)
+	if err != nil {
+		return err
+	}
+	return service.Control(svc, "stop")
 }

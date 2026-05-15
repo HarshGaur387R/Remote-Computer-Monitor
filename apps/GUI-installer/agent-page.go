@@ -8,7 +8,6 @@ import (
 	agentapis "guiinstaller/internal/agent-apis"
 	"guiinstaller/internal/components"
 	"guiinstaller/internal/constants"
-	"guiinstaller/internal/utils"
 	"image/color"
 	"io"
 	"os"
@@ -132,7 +131,6 @@ func watchLogsAndDisplay(entry *components.ReadOnlyEntry, cancel <-chan struct{}
 func startAgent(statusState binding.Bool, parent fyne.Window) {
 	{
 
-		errOnSetup := utils.SetupForAgent()
 		agentBinaryInfo, err := os.Stat(constants.RCMA_BINARY_PATH)
 
 		if err != nil {
@@ -145,19 +143,14 @@ func startAgent(statusState binding.Bool, parent fyne.Window) {
 			return
 		}
 
-		if errOnSetup != nil {
-			dialog.ShowError(errOnSetup, parent)
-			return
-		}
-
-		exist, err := utils.IsServiceExist(constants.AGENT_NAME)
+		exist, err := agentapis.IsServiceExist(constants.AGENT_NAME)
 		if err != nil {
 			dialog.ShowError(err, parent)
 			return
 		}
 
 		if !exist {
-			err := utils.RegisterService(constants.RCMA_BINARY_PATH, constants.AGENT_NAME, constants.AGENT_DISPLAY_NAME)
+			err := agentapis.RegisterService(constants.RCMA_BINARY_PATH, constants.AGENT_NAME, constants.AGENT_DISPLAY_NAME)
 			if err != nil {
 				dialog.ShowError(err, parent)
 				return
@@ -190,7 +183,7 @@ func startAgent(statusState binding.Bool, parent fyne.Window) {
 func stopAgent(statusState binding.Bool, parent fyne.Window) {
 	// Pause button action
 
-	exist, err := utils.IsServiceExist(constants.AGENT_NAME)
+	exist, err := agentapis.IsServiceExist(constants.AGENT_NAME)
 	if err != nil {
 		dialog.ShowError(err, parent)
 		return
@@ -226,15 +219,14 @@ func stopAgent(statusState binding.Bool, parent fyne.Window) {
 func AgentTab(parent fyne.Window) fyne.CanvasObject {
 	// ==================== STATES ====================
 	logState := binding.NewStringList()
+	statusState := binding.NewBool()
+	statusState.Set(false)
 
 	logsReadOnlyEntry := components.NewReadOnlyMultiLineEntry()
 	logsReadOnlyEntry.SetMinRowsVisible(20)
 
 	cancelWatch := make(chan struct{})
 	go watchLogsAndDisplay(logsReadOnlyEntry, cancelWatch)
-
-	statusState := binding.NewBool()
-	statusState.Set(false)
 
 	// ==================== HEADER ====================
 	header := canvas.NewText("Agent Control", color.RGBA{
@@ -253,7 +245,7 @@ func AgentTab(parent fyne.Window) fyne.CanvasObject {
 
 	UpdateUI := func() {
 
-		service_exist, err := utils.IsServiceExist(constants.AGENT_NAME)
+		service_exist, err := agentapis.IsServiceExist(constants.AGENT_NAME)
 		if err != nil {
 			dialog.ShowError(fmt.Errorf("Error on checking if agent exist: %v", err), parent)
 			statusState.Set(false)
