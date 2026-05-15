@@ -11,11 +11,14 @@
 ## [X] AGENT: Write agent logs in agent_logs.ndjson file.
 ## [X] INSTALLER: Subscribe to agent_logs.ndjson file using fnotify and display logs on screen in agent tab.
 ## [X] INSTALLER: Make an installer to install and run agent.
-## [] INSTALLER: Do not read agent_logs.ndjson file agent does not exist
+## [X] INSTALLER: Do not read agent_logs.ndjson file agent does not exist
+## [X] INSTALLER: Control agent through Installer and kardianos/service to use scm
+## [] AGENT: Use UDP for broadcasting and connect with mobile device
+## [] INSTALLER: Create only config.json from installer but write configuration from agent in this file.
+## [] INSTALLER: Wrap configuration in qr code and display it on connect tab, Also provide refresh button to see newly made qr data. 
 ## [] INSTALLER: Disable all the buttons when process of clicked button is in loading state
 ## [] INSTALLER: Provide remove service button which will delete service from services. 
 ## [] use named pipe to communicate with agent.  
-## [] Use UDP for broadcasting
 ## [] Use TCP for TCP and route listing.
 ## [] Add route lock-screen, Alert-window and freeze-control
 ## [] Add QR code based authentication.
