@@ -12,7 +12,6 @@ import (
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 
-	// "fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
@@ -53,7 +52,7 @@ func main() {
 		container.NewTabItemWithIcon(
 			"Connect",
 			theme.ComputerIcon(),
-			widget.NewLabel("Hello from connect page")),
+			ConnectTab(myWindow)),
 		container.NewTabItemWithIcon(
 			"About",
 			theme.HelpIcon(),

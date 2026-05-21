@@ -7,11 +7,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"guiinstaller/internal/constants"
+	"image"
 	"io"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"github.com/skip2/go-qrcode"
 )
 
 type Config struct {
@@ -99,50 +102,50 @@ func DownloadAgent(url, dest string, progressCallback func(float64)) error {
 // SetupForAgent runs only once on first install — safe to call multiple times.
 func SetupForAgent() error {
 
-    // 1) Create directory if missing
-    if err := os.MkdirAll(constants.CONFIG_DIR, 0755); err != nil {
-        return fmt.Errorf("ERROR E26 - Failed to create config directory: %v", err)
-    }
+	// 1) Create directory if missing
+	if err := os.MkdirAll(constants.CONFIG_DIR, 0755); err != nil {
+		return fmt.Errorf("ERROR E26 - Failed to create config directory: %v", err)
+	}
 
-    // 2) Create log file only if it doesn't exist — never truncate
-    if _, err := os.Stat(constants.LOG_FILE_PATH); os.IsNotExist(err) {
-        logFile, err := os.Create(constants.LOG_FILE_PATH)
-        if err != nil {
-            return fmt.Errorf("ERROR E27 - Failed to create agent log file: %v", err)
-        }
-        logFile.Close()
-    }
+	// 2) Create log file only if it doesn't exist — never truncate
+	if _, err := os.Stat(constants.LOG_FILE_PATH); os.IsNotExist(err) {
+		logFile, err := os.Create(constants.LOG_FILE_PATH)
+		if err != nil {
+			return fmt.Errorf("ERROR E27 - Failed to create agent log file: %v", err)
+		}
+		logFile.Close()
+	}
 
-    // 3) Create config only if it doesn't exist — never overwrite a valid config
-    if _, err := os.Stat(constants.CONFIG_FILE_PATH); os.IsNotExist(err) {
-        addr, err := GetLANIP()
-        if err != nil {
-            return fmt.Errorf("ERROR E28 - Error on getting LANIP: %v", err)
-        }
+	// 3) Create config only if it doesn't exist — never overwrite a valid config
+	if _, err := os.Stat(constants.CONFIG_FILE_PATH); os.IsNotExist(err) {
+		addr, err := GetLANIP()
+		if err != nil {
+			return fmt.Errorf("ERROR E28 - Error on getting LANIP: %v", err)
+		}
 
-        port, err := PickPort()
-        if err != nil {
-            return fmt.Errorf("ERROR E29 - Error on getting PORT: %v", err)
-        }
+		port, err := PickPort()
+		if err != nil {
+			return fmt.Errorf("ERROR E29 - Error on getting PORT: %v", err)
+		}
 
-        token, err := GenerateSecureToken(32)
-        if err != nil {
-            return fmt.Errorf("ERROR E30 - Error on generating token: %v", err)
-        }
+		token, err := GenerateSecureToken(32)
+		if err != nil {
+			return fmt.Errorf("ERROR E30 - Error on generating token: %v", err)
+		}
 
-        f, err := os.Create(constants.CONFIG_FILE_PATH)
-        if err != nil {
-            return fmt.Errorf("ERROR E27 - Failed to create config file: %v", err)
-        }
-        defer f.Close()
+		f, err := os.Create(constants.CONFIG_FILE_PATH)
+		if err != nil {
+			return fmt.Errorf("ERROR E27 - Failed to create config file: %v", err)
+		}
+		defer f.Close()
 
-        cfg := Config{LANIP: addr, Port: port, AuthToken: token}
-        if err := json.NewEncoder(f).Encode(cfg); err != nil {
-            return fmt.Errorf("ERROR E31 - Failed to write config: %v", err)
-        }
-    }
+		cfg := Config{LANIP: addr, Port: port, AuthToken: token}
+		if err := json.NewEncoder(f).Encode(cfg); err != nil {
+			return fmt.Errorf("ERROR E31 - Failed to write config: %v", err)
+		}
+	}
 
-    return nil
+	return nil
 }
 
 func DeleteDir(dest string) error {
@@ -201,4 +204,26 @@ func PickPort() (int, error) {
 	port := ln.Addr().(*net.TCPAddr).Port
 	ln.Close()
 	return port, nil
+}
+
+func FileExists(path string) bool {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+	if err != nil {
+		// some other error (permissions, etc.)
+		return false
+	}
+	return !info.IsDir()
+}
+
+func GenerateQrCode(text string) (image.Image, error) {
+
+	qr, err := qrcode.New(text, qrcode.Medium)
+	if err != nil {
+		return nil, err
+	}
+
+	return qr.Image(256), nil
 }
