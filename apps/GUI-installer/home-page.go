@@ -5,7 +5,6 @@ import (
 	"guiinstaller/internal/constants"
 	"guiinstaller/internal/utils"
 	"image/color"
-	"os"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -14,18 +13,6 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 )
-
-func fileExists(path string) bool {
-	info, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		return false
-	}
-	if err != nil {
-		// some other error (permissions, etc.)
-		return false
-	}
-	return !info.IsDir()
-}
 
 func handel_install(btn *widget.Button, installed binding.Bool, downloading binding.Bool, progressBar *widget.ProgressBar, progressStatusLabel *widget.Label, parent fyne.Window) {
 
@@ -45,7 +32,7 @@ func handel_install(btn *widget.Button, installed binding.Bool, downloading bind
 			downloading.Set(false)
 			println("Button enabled")
 		})
-		
+
 		errOnDownloading := utils.DownloadAgent(constants.URL, constants.RCMA_BINARY_PATH, func(progress float64) {
 			fyne.Do(func() {
 				progressBar.Value = progress / 100.0 // Convert percentage to 0-1 range
@@ -99,7 +86,7 @@ func HomeTab(parent fyne.Window) fyne.CanvasObject {
 	downloading.Set(false)
 
 	installed := binding.NewBool()
-	installed.Set(fileExists(constants.RCMA_BINARY_PATH))
+	installed.Set(utils.FileExists(constants.RCMA_BINARY_PATH))
 
 	header := canvas.NewText("Welcome to RCM", color.RGBA{
 		R: 0,
