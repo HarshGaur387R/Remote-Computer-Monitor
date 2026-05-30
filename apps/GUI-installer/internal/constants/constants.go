@@ -18,3 +18,5 @@ var RCMA_BINARY_PATH = filepath.Join(RCMA_BINARY_DIR_PATH, AGENT_BINARY_NAME)
 const CONFIG_DIR = `C:\ProgramData\RCMA`
 const CONFIG_FILE_PATH = CONFIG_DIR + `\config.json`
 const LOG_FILE_PATH = CONFIG_DIR + `\agent_logs.ndjson`
+
+const PORT = 4040 // Hard coded port, not an ideal thing to do but...
