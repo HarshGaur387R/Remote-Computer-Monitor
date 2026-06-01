@@ -163,7 +163,25 @@ export default function Computers() {
 	return (
 		<SafeAreaView style={styles.safeContainer}>
 			<ThemedView style={styles.container}>
-				<ThemedText style={styles.title}>Computers</ThemedText>
+
+				{/* ── Header row ── */}
+				<View style={styles.header}>
+					<ThemedText style={styles.title}>Computers</ThemedText>
+					<Pressable
+						onPress={loadComputers}
+						disabled={loading}
+						style={({ pressed }) => [
+							styles.reloadBtn,
+							pressed && styles.reloadBtnPressed,
+						]}
+					>
+						{loading ? (
+							<ActivityIndicator size="small" color={COLORS.primary} />
+						) : (
+							<ThemedText style={styles.reloadIcon}>↻</ThemedText>
+						)}
+					</Pressable>
+				</View>
 
 				{loading ? (
 					<View style={styles.centerContent}>
@@ -228,13 +246,40 @@ const styles = StyleSheet.create({
 		position: 'relative',
 		backgroundColor: 'transparent',
 	},
+
+	// ── NEW: header row ──
+	header: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		justifyContent: 'space-between',
+		marginBottom: 12,
+		marginLeft: 6,
+		marginRight: 6,
+	},
 	title: {
 		fontSize: 20,
 		fontWeight: '600',
 		color: '#888',
-		marginBottom: 12,
-		marginLeft: 6,
 	},
+	reloadBtn: {
+		width: 34,
+		height: 34,
+		borderRadius: 8,
+		backgroundColor: 'rgba(15, 40, 84, 0.35)',
+		borderWidth: 0.5,
+		borderColor: 'rgba(15, 40, 84, 0.6)',
+		justifyContent: 'center',
+		alignItems: 'center',
+	},
+	reloadBtnPressed: {
+		opacity: 0.6,
+	},
+	reloadIcon: {
+		fontSize: 20,
+		color: '#888',
+		lineHeight: 22,
+	},
+
 	centerContent: {
 		flex: 1,
 		justifyContent: 'center',
@@ -263,7 +308,7 @@ const styles = StyleSheet.create({
 		paddingBottom: 100,
 	},
 
-	// Card
+	// Card styles unchanged…
 	card: {
 		backgroundColor: 'rgba(15, 40, 84, 0.3)',
 		borderRadius: 12,
@@ -277,33 +322,11 @@ const styles = StyleSheet.create({
 		shadowRadius: 4,
 		elevation: 3,
 	},
-	cardContent: {
-		flex: 1,
-		justifyContent: 'flex-start',
-	},
-	// Name row (display mode)
-	cardNameRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		marginBottom: 6,
-	},
-	computerName: {
-		fontSize: 14,
-		fontWeight: '600',
-		color: 'white',
-		flex: 1,
-	},
-	cardPencilBtn: {
-		marginLeft: 4,
-		padding: 2,
-	},
-	// Name row (edit mode)
-	cardEditRow: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		marginBottom: 6,
-		gap: 4,
-	},
+	cardContent: { flex: 1, justifyContent: 'flex-start' },
+	cardNameRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+	computerName: { fontSize: 14, fontWeight: '600', color: 'white', flex: 1 },
+	cardPencilBtn: { marginLeft: 4, padding: 2 },
+	cardEditRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 4 },
 	cardNameInput: {
 		flex: 1,
 		fontSize: 13,
@@ -316,31 +339,12 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 7,
 		paddingVertical: 3,
 	},
-	cardIconBtn: {
-		padding: 4,
-		borderRadius: 4,
-		backgroundColor: 'rgba(255,255,255,0.05)',
-	},
-
+	cardIconBtn: { padding: 4, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.05)' },
 	runningState: { color: '#4ade80', fontSize: 11, fontWeight: '500' },
 	stopState: { color: '#ef4444', fontSize: 11, fontWeight: '500' },
-	cardDivider: {
-		height: 0.5,
-		backgroundColor: 'rgba(15, 40, 84, 0.5)',
-		marginVertical: 8,
-	},
-	cardLabel: {
-		fontSize: 11,
-		color: '#888',
-		marginBottom: 2,
-		fontWeight: '500',
-	},
-	cardValue: {
-		fontSize: 12,
-		fontWeight: '500',
-		color: '#ccc',
-		marginBottom: 4,
-	},
+	cardDivider: { height: 0.5, backgroundColor: 'rgba(15, 40, 84, 0.5)', marginVertical: 8 },
+	cardLabel: { fontSize: 11, color: '#888', marginBottom: 2, fontWeight: '500' },
+	cardValue: { fontSize: 12, fontWeight: '500', color: '#ccc', marginBottom: 4 },
 
 	// FAB
 	fab: {
@@ -358,9 +362,5 @@ const styles = StyleSheet.create({
 		shadowRadius: 8,
 		elevation: 8,
 	},
-	fabText: {
-		fontSize: 28,
-		fontWeight: '300',
-		color: '#fff',
-	},
+	fabText: { fontSize: 28, fontWeight: '300', color: '#fff' },
 });
