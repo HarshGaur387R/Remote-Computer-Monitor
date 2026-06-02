@@ -7,13 +7,13 @@ const db = SQLite.openDatabaseSync('rcmcomputers.db');
 
 // Create a table on initialization
 function initDB() {
-	db.execAsync(`
+	return db.execAsync(`
     CREATE TABLE IF NOT EXISTS computers (
       	id INTEGER PRIMARY KEY AUTOINCREMENT,
       	name VARCHAR(100),
 	LANIP VARCHAR(50) NOT NULL,
       	port INTEGER NOT NULL,
-	authtoken VARCHAR(200) NOT NULL UNIQUE,
+	authtoken NOT NULL UNIQUE,
 	active BOOLEAN NOT NULL DEFAULT 0
     );
   `);
@@ -56,14 +56,13 @@ const updateRowById = async (id: number, column: "name" | "LANIP" | "port" | "ac
 	} catch (error) {
 		throw error
 	}
-
 }
 
 const insertRow = async ({ name, LANIP, authtoken, port, active = false }: Omit<ComputerType, "id">) => {
 	try {
-
 		await db.runAsync(
-			`INSERT INTO computers (name, LANIP, authtoken, port, active) VALUES (?, ?, ?, ?, ?)`,
+			`INSERT OR IGNORE INTO computers (name, LANIP, authtoken, port, active)
+     VALUES (?, ?, ?, ?, ?)`,
 			[name, LANIP, authtoken, port, active]
 		);
 
