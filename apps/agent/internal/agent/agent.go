@@ -23,6 +23,10 @@ type SystemInfo struct {
 	StorageUsedPercent float64 `json:"storage_used_percent"`
 }
 
+type PingInfo struct {
+	IsActive bool `json:"is_active"`
+}
+
 // CollectSystemInfo gathers CPU, memory, and disk metrics.
 func CollectSystemInfo() (*SystemInfo, error) {
 	percent, err := cpu.Percent(time.Second, false)
@@ -73,9 +77,17 @@ func SystemInfoHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(info)
 }
 
+func PingHandler(w http.ResponseWriter, r *http.Request) {
+	responseData := &PingInfo{IsActive: true}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(responseData)
+}
+
 // BuildRouter creates and returns the HTTP mux for the agent.
 func BuildRouter(authToken string) http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("/ping", AuthMiddleware(authToken, PingHandler))
 	mux.HandleFunc("/system-info", AuthMiddleware(authToken, SystemInfoHandler))
 	return mux
 }
+

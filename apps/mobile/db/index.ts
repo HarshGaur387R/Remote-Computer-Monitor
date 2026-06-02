@@ -1,50 +1,93 @@
 import * as SQLite from 'expo-sqlite';
+import databaseConstant from '@/constants/database';
+const tableName = databaseConstant.tableName;
+
 // Open or create a database file named "computers.db"
 const db = SQLite.openDatabaseSync('rcmcomputers.db');
-// Create a table
 
+// Create a table on initialization
 function initDB() {
-	db.execAsync(`
+	return db.execAsync(`
     CREATE TABLE IF NOT EXISTS computers (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT,
-      ip TEXT
+      	id INTEGER PRIMARY KEY AUTOINCREMENT,
+      	name VARCHAR(100),
+	LANIP VARCHAR(50) NOT NULL,
+      	port INTEGER NOT NULL,
+	authtoken NOT NULL UNIQUE,
+	active BOOLEAN NOT NULL DEFAULT 0
     );
   `);
 }
 
-const getTable = async (tableName: string) => {
+interface ComputerType {
+	id: number
+	name: string | null
+	LANIP: string
+	port: number
+	authtoken: string
+	active: boolean
+}
+
+const getTable = async () => {
 	try {
 		const allrows = await db.getAllAsync(`SELECT * FROM ${tableName}`);
-		return allrows
+		return allrows as ComputerType[]
 
 		//throw new Error("Testing error")
-
-
-		//return [
-		//	{ id: 1, name: "PC1", ip: "192.168.1.10", active: false },
-		//	{ id: 2, name: "PC2", ip: "192.168.1.11", active: true },
-		//	{ id: 3, name: "PC3", ip: "192.168.1.12", active: true },
-		//	{ id: 4, name: "PC4", ip: "192.168.1.12", active: true },
-		//	{ id: 5, name: "PC5", ip: "192.168.1.12", active: true },
-		//	{ id: 6, name: "PC6", ip: "192.168.1.12", active: true },
-		//	{ id: 7, name: "PC7", ip: "192.168.1.12", active: true },
-		//]
-
 	} catch (error) {
 		throw error
 	}
 }
 
-const getRowById = async ({ tableName, rowId }: { tableName: string, rowId: string }) => {
+const getRowById = async ({ rowId }: { rowId: string }) => {
 
 }
 
-const getRowByindex = async ({ tableName, index }: { tableName: string, index: number }) => {
+const getRowByIndex = async ({ index }: { index: number }) => {
 
+}
+
+const updateRowById = async (id: number, column: "name" | "LANIP" | "port" | "active", new_value: string | number | boolean) => {
+	try {
+		await db.runAsync(
+			`UPDATE computers SET ${column} = ? WHERE id = ?;`,
+			[new_value, id]
+		)
+	} catch (error) {
+		throw error
+	}
+}
+
+const insertRow = async ({ name, LANIP, authtoken, port, active = false }: Omit<ComputerType, "id">) => {
+	try {
+		await db.runAsync(
+			`INSERT OR IGNORE INTO computers (name, LANIP, authtoken, port, active)
+     VALUES (?, ?, ?, ?, ?)`,
+			[name, LANIP, authtoken, port, active]
+		);
+
+	} catch (error) {
+		throw error
+	}
+
+}
+
+const deleteRowById = async (id: number) => {
+	try {
+		await db.runAsync(
+			`DELETE FROM computers WHERE id = ?;`,
+			[id]
+		)
+	} catch (error) {
+		throw error
+	}
 }
 
 export {
 	initDB,
-	getTable
+	getTable,
+	ComputerType,
+	insertRow,
+	updateRowById,
+	deleteRowById
 }

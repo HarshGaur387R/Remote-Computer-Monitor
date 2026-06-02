@@ -197,13 +197,13 @@ func GetLANIP() (string, error) {
 }
 
 func PickPort() (int, error) {
-	ln, err := net.Listen("tcp", ":0")
-	if err != nil {
-		return 0, fmt.Errorf("ERROR E39 - failed to listen on port: %v", err)
-	}
-	port := ln.Addr().(*net.TCPAddr).Port
-	ln.Close()
-	return port, nil
+	// ln, err := net.Listen("tcp", ":0")
+	// if err != nil {
+	//	return 0, fmt.Errorf("ERROR E39 - failed to listen on port: %v", err)
+	// }
+	// port := ln.Addr().(*net.TCPAddr).Port
+	// ln.Close()
+	return constants.PORT, nil
 }
 
 func FileExists(path string) bool {

@@ -8,14 +8,15 @@ import { useNetworkState } from 'expo-network';
 import { APP_NAME, COLORS } from "@rcm/shared"
 import { Loading_screen } from '@/components/LoadingScreen';
 import { NetworkErrorScreen } from '@/components/NetworkErrorScreen';
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useCallback, useState } from 'react';
 import { getTable } from '@/db';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { TouchableOpacity } from 'react-native';
 import { countActiveComputers } from '@/utils';
 import { ScrollView } from 'react-native';
 import { ErrorScreen } from '@/components/ErrorScreen';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { ComputerType } from '@/db';
 
 function FrameContainer({ child }: { child: ReactNode }) {
 	return (
@@ -33,17 +34,10 @@ function FrameContainer({ child }: { child: ReactNode }) {
 	)
 }
 
-type Computers = {
-	id: number;
-	name: string;
-	ip: string;
-	active: boolean;
-}
-
 type DisplayComputerInformationType = {
 	connectedComputers: number;
 	activeComputers: number;
-	computers: { id: number; name: string; ip: string; active: boolean }[];
+	computers: ComputerType[];
 }
 
 function DisplayComputerInformation({ connectedComputers, activeComputers, computers }: DisplayComputerInformationType) {
@@ -86,13 +80,8 @@ function DisplayComputerInformation({ connectedComputers, activeComputers, compu
 								<IconSymbol name="pc" size={20} color={COLORS.secondery} />
 							</ThemedView>
 							<ThemedView style={styles.deviceInfo}>
-								<ThemedText style={styles.deviceName}>{pc.name}</ThemedText>
-								<ThemedText style={styles.deviceIp}>{pc.ip}</ThemedText>
-							</ThemedView>
-							<ThemedView style={[styles.badge, pc.active ? styles.badgeActive : styles.badgeIdle]}>
-								<ThemedText style={[styles.badgeText, pc.active ? styles.badgeTextActive : styles.badgeTextIdle]}>
-									{pc.active ? 'Active' : 'Idle'}
-								</ThemedText>
+								<ThemedText style={styles.deviceName}>{pc.name ? pc.name : "Unknown Device"}</ThemedText>
+								<ThemedText style={styles.deviceIp}>{pc.LANIP} : {pc.port}</ThemedText>
 							</ThemedView>
 						</ThemedView>
 					))}
@@ -110,7 +99,7 @@ function DisplayComputerInformation({ connectedComputers, activeComputers, compu
 	);
 }
 
-function DiplayAddComputer() {
+function DisplayAddComputer() {
 	return (
 		<ThemedView style={styles.displayAddComputerContainer}>
 			<IconSymbol name='qrcode' size={130} color={"#1C4D8D"} />
@@ -129,7 +118,7 @@ function DiplayAddComputer() {
 			</ThemedText>
 			<TouchableOpacity
 				style={styles.button}
-				onPress={() => { router.push('/qrscanner')}}
+				onPress={() => { router.push('/qrscanner') }}
 				activeOpacity={0.7}
 			>
 				<ThemedText style={styles.buttonText}>{"Scan QR"}</ThemedText>
@@ -146,31 +135,34 @@ export default function HomeScreen() {
 	const [error, setError] = useState<string | null>(null)
 	const [activeComputers, setActiveComputers] = useState<number>(0)
 	const [connectedComputers, setConnectedComputers] = useState<number>(0)
-	const [computers, setComputers] = useState<unknown[]>([])
+	const [computers, setComputers] = useState<ComputerType[]>([])
 
-	useEffect(() => {
-		async function fetchTableRows() {
-			try {
-				setError(null)
-				setLoading(true);
-				const rows = await getTable("computers")
+	useFocusEffect(
+		useCallback(() => {
+			async function fetchTableRows() {
+				try {
+					setError(null)
+					setLoading(true);
+					const rows = await getTable()
 
-				setComputers(rows as Computers[])
-				const activeCount = countActiveComputers(computers);
-				const connectedCounts = computers.length;
+					setComputers(rows as ComputerType[])
+					const activeCount = countActiveComputers(rows);
+					const connectedCounts = rows.length;
 
-				setActiveComputers(activeCount);
-				setConnectedComputers(connectedCounts);
-				setLoading(false)
-			} catch (error) {
-				const err = error as Error;
-				setError(err.message);
-			} finally {
-				setLoading(false);
+
+					setActiveComputers(activeCount);
+					setConnectedComputers(connectedCounts);
+					setLoading(false)
+				} catch (error) {
+					const err = error as Error;
+					setError(err.message);
+				} finally {
+					setLoading(false);
+				}
 			}
-		}
-		fetchTableRows()
-	}, [])
+			fetchTableRows()
+		}, [])
+	)
 
 	if (error) {
 		return (
@@ -212,10 +204,10 @@ export default function HomeScreen() {
 						? <DisplayComputerInformation
 							connectedComputers={connectedComputers}
 							activeComputers={activeComputers}
-							computers={computers as Computers[]}
+							computers={computers as ComputerType[]}
 
 						/>
-						: <DiplayAddComputer />
+						: <DisplayAddComputer />
 				}
 			/>
 		)
@@ -238,17 +230,19 @@ const styles = StyleSheet.create({
 		fontSize: 28,
 		color: 'white',
 		textAlign: 'center',
-		padding: 8,
+		// padding: 8,
+		paddingHorizontal: 8,
 		fontWeight: 'semibold',
 		lineHeight: 30,
 	},
 	mainScreen: {
-		padding: 10,
+		// padding: 10,
 		width: "90%",
 		height: 600,
 		backgroundColor: 'transparent',
 		display: 'flex',
 		flexDirection: 'column',
+		gap: 30,
 		//borderWidth: 2,
 		//borderColor: 'blue'
 	},
