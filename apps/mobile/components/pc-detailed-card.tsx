@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { View, Pressable, StyleSheet, TextInput, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Pressable, StyleSheet, TextInput, KeyboardAvoidingView, Platform, Alert, ScrollView } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { COLORS } from '@rcm/shared';
-import { ComputerType, getTable, deleteRowById } from '@/db/index';
+import { ComputerType, getTable, deleteRowById, insertRow, updateRowById, updateFieldsById } from '@/db/index';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 interface PcDetailedCardProps {
@@ -12,6 +12,30 @@ interface PcDetailedCardProps {
     onClose: () => void;
     onUpdateComputerName?: (id: number, newName: string) => Promise<void>;
     onDelete?: (id: number) => Promise<void>;
+}
+
+interface SystemInfoType {
+    cpu_usage_percent: number;
+    total_vram_mb: number;
+    available_vram_mb: number;
+    vram_used_percent: number;
+    total_storage_gb: number;
+    available_storage_gb: number;
+    storage_used_percent: number;
+}
+
+function validateFields(jsonResponse: any) {
+    const systemInfo: SystemInfoType = {
+        cpu_usage_percent: typeof jsonResponse.cpu_usage_percent === 'number' ? jsonResponse.cpu_usage_percent : 0,
+        total_vram_mb: typeof jsonResponse.total_vram_mb === 'number' ? jsonResponse.total_vram_mb : 0,
+        available_vram_mb: typeof jsonResponse.available_vram_mb === 'number' ? jsonResponse.available_vram_mb : 0,
+        vram_used_percent: typeof jsonResponse.vram_used_percent === 'number' ? jsonResponse.vram_used_percent : 0,
+        total_storage_gb: typeof jsonResponse.total_storage_gb === 'number' ? jsonResponse.total_storage_gb : 0,
+        available_storage_gb: typeof jsonResponse.available_storage_gb === 'number' ? jsonResponse.available_storage_gb : 0,
+        storage_used_percent: typeof jsonResponse.storage_used_percent === 'number' ? jsonResponse.storage_used_percent : 0,
+    };
+
+    return systemInfo
 }
 
 export function PcDetailedCard({ computerId, onClose, onUpdateComputerName, onDelete }: PcDetailedCardProps) {
@@ -22,22 +46,57 @@ export function PcDetailedCard({ computerId, onClose, onUpdateComputerName, onDe
     const [isSaving, setIsSaving] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
+    console.log("pc-card-details renderd")
+
     useEffect(() => {
         fetchComputerData();
     }, [computerId]);
 
     const fetchComputerData = async () => {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        let found: ComputerType | undefined;
+
         try {
             setLoading(true);
             const computers = await getTable();
-            const found = computers.find(c => c.id === computerId);
+            found = computers.find(c => c.id === computerId);
+
             if (found) {
-                setComputer(found);
                 setEditedName(found.name || "Unknown device");
+                setComputer(found); // Initialize with current state
+
+                const response = await fetch(
+                    `http://${found.LANIP}:${found.port}/system-info?auth=${found.authtoken}`,
+                    {
+                        signal: controller.signal,
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(`Agent responded with status ${response.status}`);
+                }
+
+                const jsonResponse = await response.json();
+                const systemInfo = validateFields(jsonResponse);
+
+                await updateFieldsById(found.id, { ...systemInfo, active: true });
+                setComputer({ ...found, ...systemInfo, active: true });
             }
         } catch (error) {
-            console.error('Error fetching computer data:', error);
+            if (found) {
+                const errorComputer = { ...found, active: false };
+                setComputer(errorComputer);
+                await updateFieldsById(found.id, { active: false });
+
+                if (error instanceof Error && error.name === 'AbortError') {
+                    console.error('Request timed out - setting device offline');
+                } else {
+                    console.error('Error fetching computer data:', error);
+                }
+            }
         } finally {
+            clearTimeout(timeout);
             setLoading(false);
         }
     };
@@ -178,23 +237,56 @@ export function PcDetailedCard({ computerId, onClose, onUpdateComputerName, onDe
                     <View style={styles.divider} />
 
                     {/* Details Section */}
-                    <View style={styles.detailsSection}>
-                        {loading ? (
-                            <ThemedText style={styles.loadingText}>Loading details...</ThemedText>
-                        ) : (
-                            <>
-                                <DetailRow label="IP Address" value={computer?.LANIP || 'N/A'} />
-                                <DetailRow label="Port" value={computer?.port?.toString() || 'N/A'} />
-                                <DetailRow
-                                    label="Auth Token"
-                                    value={computer?.authtoken ? `${computer.authtoken.substring(0, 10)}...` : 'N/A'}
-                                    isCopyable
-                                    fullValue={computer?.authtoken}
-                                />
-                                <DetailRow label="Device ID" value={computer?.id?.toString() || 'N/A'} />
-                            </>
-                        )}
-                    </View>
+                    <ScrollView>
+
+                        <View style={styles.detailsSection}>
+                            {loading ? (
+                                <ThemedText style={styles.loadingText}>Loading details...</ThemedText>
+                            ) : (
+                                <>
+                                    <DetailRow label="IP Address" value={computer?.LANIP || 'N/A'} />
+                                    <DetailRow label="Port" value={computer?.port?.toString() || 'N/A'} />
+                                    <DetailRow
+                                        label="Auth Token"
+                                        value={computer?.authtoken ? `${computer.authtoken.substring(0, 10)}...` : 'N/A'}
+                                        isCopyable
+                                        fullValue={computer?.authtoken}
+                                    />
+                                    <DetailRow label="Device ID" value={computer?.id?.toString() || 'N/A'} />
+
+                                    {/* System Stats */}
+                                    <DetailRow
+                                        label="CPU Usage"
+                                        value={computer?.cpu_usage_percent ? `${computer.cpu_usage_percent.toFixed(1)}%` : 'N/A'}
+                                    />
+                                    <DetailRow
+                                        label="RAM Total"
+                                        value={computer?.total_vram_mb ? `${computer.total_vram_mb} MB` : 'N/A'}
+                                    />
+                                    <DetailRow
+                                        label="RAM Available"
+                                        value={computer?.available_vram_mb ? `${computer.available_vram_mb} MB` : 'N/A'}
+                                    />
+                                    <DetailRow
+                                        label="RAM Usage"
+                                        value={computer?.vram_used_percent ? `${computer.vram_used_percent.toFixed(1)}%` : 'N/A'}
+                                    />
+                                    <DetailRow
+                                        label="Storage Total"
+                                        value={computer?.total_storage_gb ? `${computer.total_storage_gb} GB` : 'N/A'}
+                                    />
+                                    <DetailRow
+                                        label="Storage Available"
+                                        value={computer?.available_storage_gb ? `${computer.available_storage_gb} GB` : 'N/A'}
+                                    />
+                                    <DetailRow
+                                        label="Storage Usage"
+                                        value={computer?.storage_used_percent ? `${computer.storage_used_percent.toFixed(1)}%` : 'N/A'}
+                                    />
+                                </>
+                            )}
+                        </View>
+                    </ScrollView>
 
                     {/* Action Buttons */}
                     <View style={styles.buttonRow}>
