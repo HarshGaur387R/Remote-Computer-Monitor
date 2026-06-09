@@ -16,6 +16,16 @@ interface ScanDataType {
 	port: number;
 }
 
+interface SystemInfoType {
+	cpu_usage_percent: number;
+	total_vram_mb: number;
+	available_vram_mb: number;
+	vram_used_percent: number;
+	total_storage_gb: number;
+	available_storage_gb: number;
+	storage_used_percent: number;
+}
+
 type ScanState =
 	| { status: "idle" }
 	| { status: "processing" }
@@ -134,13 +144,13 @@ export default function QRScannerScreen() {
 	const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 	const [scanState, setScanState] = useState<ScanState>({ status: "idle" });
 
-	async function fetchActiveStatus(jsonData: ScanDataType): Promise<boolean> {
+	async function fetchSystemInfo(jsonData: ScanDataType): Promise<SystemInfoType> {
 		const controller = new AbortController();
 		const timeout = setTimeout(() => controller.abort(), 5000);
 
 		try {
 			const response = await fetch(
-				`http://${jsonData.lan_ip}:${jsonData.port}/ping?auth=${jsonData.auth_token}`,
+				`http://${jsonData.lan_ip}:${jsonData.port}/system-info?auth=${jsonData.auth_token}`,
 				{
 					signal: controller.signal,
 				}
@@ -148,13 +158,21 @@ export default function QRScannerScreen() {
 			if (!response.ok)
 				throw new Error(`Agent responded with status ${response.status}`);
 
-			const jsonResponse = (await response.json()) as { is_active: boolean };
-			console.log(jsonResponse)
+			const jsonResponse = await response.json();
+			console.log(jsonResponse);
 
-			if (jsonResponse.is_active === null)
-				throw new Error("Agent returned a null isActive status");
+			// Validate required fields
+			const systemInfo: SystemInfoType = {
+				cpu_usage_percent: typeof jsonResponse.cpu_usage_percent === 'number' ? jsonResponse.cpu_usage_percent : 0,
+				total_vram_mb: typeof jsonResponse.total_vram_mb === 'number' ? jsonResponse.total_vram_mb : 0,
+				available_vram_mb: typeof jsonResponse.available_vram_mb === 'number' ? jsonResponse.available_vram_mb : 0,
+				vram_used_percent: typeof jsonResponse.vram_used_percent === 'number' ? jsonResponse.vram_used_percent : 0,
+				total_storage_gb: typeof jsonResponse.total_storage_gb === 'number' ? jsonResponse.total_storage_gb : 0,
+				available_storage_gb: typeof jsonResponse.available_storage_gb === 'number' ? jsonResponse.available_storage_gb : 0,
+				storage_used_percent: typeof jsonResponse.storage_used_percent === 'number' ? jsonResponse.storage_used_percent : 0,
+			};
 
-			return jsonResponse.is_active;
+			return systemInfo;
 		} finally {
 			clearTimeout(timeout);
 		}
@@ -179,14 +197,22 @@ export default function QRScannerScreen() {
 				throw new Error("QR code is missing required fields (lan_ip, auth_token, port)");
 			}
 
-			const activeStatus = await fetchActiveStatus(jsonData);
-			console.log(activeStatus)
+			const systemInfo = await fetchSystemInfo(jsonData);
+			console.log(systemInfo);
+
 			await insertRow({
 				name: null,
 				LANIP: jsonData.lan_ip,
 				authtoken: jsonData.auth_token,
 				port: jsonData.port,
-				active: activeStatus,
+				active: true,
+				cpu_usage_percent: systemInfo.cpu_usage_percent,
+				total_vram_mb: systemInfo.total_vram_mb,
+				available_vram_mb: systemInfo.available_vram_mb,
+				vram_used_percent: systemInfo.vram_used_percent,
+				total_storage_gb: systemInfo.total_storage_gb,
+				available_storage_gb: systemInfo.available_storage_gb,
+				storage_used_percent: systemInfo.storage_used_percent,
 			});
 
 			setScanState({ status: "success", ip: jsonData.lan_ip });
