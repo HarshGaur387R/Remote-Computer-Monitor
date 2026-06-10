@@ -20,7 +20,6 @@ Remote-Computer-Monitor/
 │   ├── mobile/                 # React Native/Expo mobile app
 │   ├── agent/                  # Go-based system monitoring agent
 │   ├── GUI-installer/          # Go GUI installer for agent setup
-│   └── agent-installer/        # Agent installer module
 ├── packages/
 │   └── shared/                 # Shared TypeScript utilities and types
 └── agent/                      # C++ native agent code
@@ -31,7 +30,6 @@ Remote-Computer-Monitor/
 #### 1. **Mobile App** (`apps/mobile`)
 - **Stack:** React Native (Expo), TypeScript
 - **Features:**
-  - Cross-platform support (iOS, Android, Web)
   - Real-time system monitoring dashboard
   - Remote computer control interface
   - Navigation and UI components using React Navigation
@@ -44,7 +42,6 @@ Remote-Computer-Monitor/
   - Collects system metrics (CPU, memory, disk, network)
   - Runs as a system service
   - Communicates with mobile app
-  - Cross-platform support (Windows, Linux, macOS)
 - **Key Dependencies:** `gopsutil` (system metrics), `service` (Windows service management)
 
 #### 3. **GUI Installer** (`apps/GUI-installer`)
@@ -53,12 +50,25 @@ Remote-Computer-Monitor/
   - User-friendly graphical installer
   - QR code generation for easy agent pairing
   - File system monitoring during installation
-  - Cross-platform GUI support
 - **Key Dependencies:** Fyne, fsnotify, QR code library
 
 #### 4. **Shared Package** (`packages/shared`)
 - **Stack:** TypeScript
 - **Purpose:** Common types, utilities, and interfaces shared across the monorepo
+
+
+## 📷 Images
+#### 1. **Gui installer**
+![Home page](./images/Screenshot%202026-06-10%20151856.png)
+
+![Agent page](./images/Screenshot%202026-06-10%20151926.png)
+
+![Connect page](./images/Screenshot%202026-06-10%20151954.png)
+
+#### 2. **Mobile**
+![Home page](./images/WhatsApp%20Image-2%202026-06-10%20at%203.29.49%20PM.jpeg)
+
+![Computers page](./images/WhatsApp%20Image%202026-06-10%20at%203.29.49%20PM.jpeg)
 
 ## 🛠️ Tech Stack
 
@@ -97,19 +107,13 @@ Remote-Computer-Monitor/
 #### Mobile App
 ```bash
 # Start development server
-npm run mobile
+npm expo run
 
 # Build for Android
-npm run android
-
-# Build for iOS
-npm run ios
-
-# Build web version
-npm run web
+npx expo run:android
 
 # Production build
-npm run build:mobile
+npx expo build:mobile
 ```
 
 #### System Agent
@@ -125,6 +129,9 @@ npm run build:agent
 
 # Configure and build debug
 npm run cmake:debug:agent
+
+# In powershell run 
+build-agent.ps1 
 ```
 
 ## 🚀 Usage
@@ -157,7 +164,6 @@ npm run cmake:debug:agent
 ### System Monitoring
 - Lightweight Go agent runs as a system service
 - Gathers CPU, memory, disk, and network metrics
-- Cross-platform compatibility (Windows, macOS, Linux)
 
 ### Native Components
 - Optional C++ native agent for enhanced performance
